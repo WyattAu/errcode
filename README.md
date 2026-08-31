@@ -1,4 +1,4 @@
-# errcode
+# error-codes
 
 Structured error handling for Rust — derive macros for error codes, HTTP status mapping, and RFC 7807 Problem Details.
 
