@@ -215,4 +215,217 @@ mod tests {
         assert!(json.contains("Conflict"));
         assert!(json.contains("version mismatch"));
     }
+
+    // ---- Additional ErrorCode status/reason/type_uri coverage ----
+
+    #[test]
+    fn error_code_status_remaining_variants() {
+        assert_eq!(ErrorCode::RateLimited.status(), 429);
+        assert_eq!(ErrorCode::BadRequest.status(), 400);
+        assert_eq!(ErrorCode::Unavailable.status(), 503);
+    }
+
+    #[test]
+    fn error_code_reason_all_variants() {
+        assert_eq!(ErrorCode::NotFound.reason(), "Not Found");
+        assert_eq!(ErrorCode::Conflict.reason(), "Conflict");
+        assert_eq!(ErrorCode::Validation.reason(), "Validation Error");
+        assert_eq!(ErrorCode::Auth.reason(), "Unauthorized");
+        assert_eq!(ErrorCode::Internal.reason(), "Internal Server Error");
+        assert_eq!(ErrorCode::RateLimited.reason(), "Too Many Requests");
+        assert_eq!(ErrorCode::BadRequest.reason(), "Bad Request");
+        assert_eq!(ErrorCode::Unavailable.reason(), "Service Unavailable");
+    }
+
+    #[test]
+    fn error_code_type_uri_all_variants() {
+        assert_eq!(ErrorCode::NotFound.type_uri(), "https://httpstatuses.com/404");
+        assert_eq!(ErrorCode::Conflict.type_uri(), "https://httpstatuses.com/409");
+        assert_eq!(ErrorCode::Validation.type_uri(), "https://httpstatuses.com/422");
+        assert_eq!(ErrorCode::Auth.type_uri(), "https://httpstatuses.com/401");
+        assert_eq!(ErrorCode::Internal.type_uri(), "https://httpstatuses.com/500");
+        assert_eq!(ErrorCode::RateLimited.type_uri(), "https://httpstatuses.com/429");
+        assert_eq!(ErrorCode::BadRequest.type_uri(), "https://httpstatuses.com/400");
+        assert_eq!(ErrorCode::Unavailable.type_uri(), "https://httpstatuses.com/503");
+    }
+
+    #[test]
+    fn error_code_display_all_variants() {
+        assert_eq!(format!("{}", ErrorCode::NotFound), "Not Found (404)");
+        assert_eq!(format!("{}", ErrorCode::Conflict), "Conflict (409)");
+        assert_eq!(format!("{}", ErrorCode::Validation), "Validation Error (422)");
+        assert_eq!(format!("{}", ErrorCode::Auth), "Unauthorized (401)");
+        assert_eq!(format!("{}", ErrorCode::Internal), "Internal Server Error (500)");
+        assert_eq!(format!("{}", ErrorCode::RateLimited), "Too Many Requests (429)");
+        assert_eq!(format!("{}", ErrorCode::BadRequest), "Bad Request (400)");
+        assert_eq!(format!("{}", ErrorCode::Unavailable), "Service Unavailable (503)");
+    }
+
+    #[test]
+    fn error_code_debug_clone_copy() {
+        let code = ErrorCode::NotFound;
+        let cloned = code;
+        let copied = code;
+        assert_eq!(code, cloned);
+        assert_eq!(code, copied);
+        let debug_str = format!("{:?}", code);
+        assert_eq!(debug_str, "NotFound");
+    }
+
+    #[test]
+    fn error_code_hash_consistency() {
+        use std::collections::HashMap;
+        let mut map = HashMap::new();
+        map.insert(ErrorCode::NotFound, "not_found");
+        map.insert(ErrorCode::Conflict, "conflict");
+        assert_eq!(map.get(&ErrorCode::NotFound), Some(&"not_found"));
+        assert_eq!(map.get(&ErrorCode::Conflict), Some(&"conflict"));
+        assert_eq!(map.get(&ErrorCode::Auth), None);
+    }
+
+    // ---- Additional ProblemDetail tests ----
+
+    #[test]
+    fn problem_detail_display_without_detail() {
+        let problem = ProblemDetail::new(ErrorCode::Internal);
+        assert_eq!(format!("{problem}"), "[500] Internal Server Error");
+    }
+
+    #[test]
+    fn problem_detail_display_only_instance() {
+        let problem = ProblemDetail::new(ErrorCode::NotFound)
+            .with_instance("/users/42");
+        assert_eq!(format!("{problem}"), "[404] Not Found");
+    }
+
+    #[test]
+    fn problem_detail_defaults_from_code() {
+        let problem = ProblemDetail::new(ErrorCode::Auth);
+        assert_eq!(problem.type_uri, "https://httpstatuses.com/401");
+        assert_eq!(problem.title, "Unauthorized");
+        assert_eq!(problem.status, 401);
+        assert!(problem.detail.is_none());
+        assert!(problem.instance.is_none());
+    }
+
+    #[test]
+    fn problem_detail_implements_std_error() {
+        let problem = ProblemDetail::new(ErrorCode::NotFound)
+            .with_detail("gone");
+        let err: &dyn std::error::Error = &problem;
+        assert!(err.source().is_none());
+        assert!(err.to_string().contains("Not Found"));
+    }
+
+    #[test]
+    fn problem_detail_clone() {
+        let p1 = ProblemDetail::new(ErrorCode::Conflict)
+            .with_detail("race condition")
+            .with_instance("/resource/1");
+        let p2 = p1.clone();
+        assert_eq!(p1.status, p2.status);
+        assert_eq!(p1.title, p2.title);
+        assert_eq!(p1.detail, p2.detail);
+        assert_eq!(p1.instance, p2.instance);
+    }
+
+    #[cfg(feature = "serde_impl")]
+    #[test]
+    fn problem_detail_json_pretty_serialization() {
+        let problem = ProblemDetail::new(ErrorCode::Validation)
+            .with_detail("field required")
+            .with_instance("/form");
+        let json = problem.to_json_pretty();
+        assert!(json.contains("\"type\""));
+        assert!(json.contains("Validation Error"));
+        assert!(json.contains("field required"));
+        assert!(json.contains("/form"));
+        assert!(json.contains('\n'));
+    }
+
+    #[cfg(feature = "serde_impl")]
+    #[test]
+    fn problem_detail_json_roundtrip() {
+        let original = ProblemDetail::new(ErrorCode::NotFound)
+            .with_detail("item missing")
+            .with_instance("/items/7");
+        let json = original.to_json();
+        let restored: ProblemDetail = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.status, original.status);
+        assert_eq!(restored.title, original.title);
+        assert_eq!(restored.detail, original.detail);
+        assert_eq!(restored.instance, original.instance);
+        assert_eq!(restored.type_uri, original.type_uri);
+    }
+
+    // ---- ErrCode trait tests ----
+
+    #[derive(Debug)]
+    struct MyError {
+        msg: String,
+    }
+
+    impl std::fmt::Display for MyError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{}", self.msg)
+        }
+    }
+
+    impl ErrCode for MyError {
+        fn code(&self) -> ErrorCode {
+            if self.msg.contains("not found") {
+                ErrorCode::NotFound
+            } else {
+                ErrorCode::Internal
+            }
+        }
+
+        fn detail(&self) -> Option<&str> {
+            Some(&self.msg)
+        }
+    }
+
+    #[test]
+    fn err_code_trait_problem_with_detail() {
+        let err = MyError {
+            msg: "user not found".into(),
+        };
+        let problem = err.problem();
+        assert_eq!(problem.status, 404);
+        assert_eq!(problem.title, "Not Found");
+        assert_eq!(problem.detail.as_deref(), Some("user not found"));
+    }
+
+    #[test]
+    fn err_code_trait_code_selection() {
+        let not_found = MyError { msg: "not found".into() };
+        assert_eq!(not_found.code(), ErrorCode::NotFound);
+
+        let other = MyError { msg: "something".into() };
+        assert_eq!(other.code(), ErrorCode::Internal);
+    }
+
+    #[derive(Debug)]
+    struct SimpleError;
+
+    impl std::fmt::Display for SimpleError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "simple error")
+        }
+    }
+
+    impl ErrCode for SimpleError {
+        fn code(&self) -> ErrorCode {
+            ErrorCode::BadRequest
+        }
+    }
+
+    #[test]
+    fn err_code_trait_default_detail_none() {
+        let err = SimpleError;
+        assert!(err.detail().is_none());
+        let problem = err.problem();
+        assert_eq!(problem.status, 400);
+        assert!(problem.detail.is_none());
+    }
 }
