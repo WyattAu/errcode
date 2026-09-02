@@ -1,3 +1,4 @@
+#![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 //! Structured error handling for Rust.
@@ -8,13 +9,12 @@
 //! # Quick Start
 //!
 //! ```rust
-//! use errcode::{ErrorCode, ProblemDetail};
+//! use error_codes::ErrorCode;
 //!
-//! let problem = ProblemDetail::new(ErrorCode::NotFound)
-//!     .with_detail("User not found");
-//!
-//! assert_eq!(problem.status, 404);
+//! assert_eq!(ErrorCode::NotFound.status(), 404);
 //! ```
+
+extern crate alloc;
 
 /// Error types, codes, and RFC 7807 Problem Details.
 pub mod error;

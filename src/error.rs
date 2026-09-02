@@ -1,4 +1,4 @@
-use std::fmt;
+use core::fmt;
 
 /// Error codes for structured error handling.
 ///
@@ -79,25 +79,27 @@ impl fmt::Display for ErrorCode {
 /// Represents a structured error response as defined in
 /// [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807).
 #[derive(Debug, Clone)]
+#[cfg(feature = "serde_impl")]
 #[cfg_attr(feature = "serde_impl", derive(serde::Serialize, serde::Deserialize))]
 pub struct ProblemDetail {
     /// The error type URI.
     #[cfg_attr(feature = "serde_impl", serde(rename = "type"))]
-    pub type_uri: String,
+    pub type_uri: alloc::string::String,
 
     /// Human-readable summary.
-    pub title: String,
+    pub title: alloc::string::String,
 
     /// HTTP status code.
     pub status: u16,
 
     /// Optional detailed error message.
-    pub detail: Option<String>,
+    pub detail: Option<alloc::string::String>,
 
     /// Optional URI reference for the specific occurrence.
-    pub instance: Option<String>,
+    pub instance: Option<alloc::string::String>,
 }
 
+#[cfg(feature = "serde_impl")]
 impl ProblemDetail {
     /// Creates a new `ProblemDetail` from an `ErrorCode`.
     pub fn new(code: ErrorCode) -> Self {
@@ -111,30 +113,29 @@ impl ProblemDetail {
     }
 
     /// Sets the detail message.
-    pub fn with_detail(mut self, detail: impl Into<String>) -> Self {
+    pub fn with_detail(mut self, detail: impl Into<alloc::string::String>) -> Self {
         self.detail = Some(detail.into());
         self
     }
 
     /// Sets the instance URI.
-    pub fn with_instance(mut self, instance: impl Into<String>) -> Self {
+    pub fn with_instance(mut self, instance: impl Into<alloc::string::String>) -> Self {
         self.instance = Some(instance.into());
         self
     }
 
     /// Serializes to JSON (requires `serde_impl` feature).
-    #[cfg(feature = "serde_impl")]
-    pub fn to_json(&self) -> String {
+    pub fn to_json(&self) -> alloc::string::String {
         serde_json::to_string(self).expect("ProblemDetail should always serialize")
     }
 
     /// Serializes to pretty-printed JSON (requires `serde_impl` feature).
-    #[cfg(feature = "serde_impl")]
-    pub fn to_json_pretty(&self) -> String {
+    pub fn to_json_pretty(&self) -> alloc::string::String {
         serde_json::to_string_pretty(self).expect("ProblemDetail should always serialize")
     }
 }
 
+#[cfg(feature = "serde_impl")]
 impl fmt::Display for ProblemDetail {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "[{}] {}", self.status, self.title)?;
@@ -145,6 +146,7 @@ impl fmt::Display for ProblemDetail {
     }
 }
 
+#[cfg(all(feature = "std", feature = "serde_impl"))]
 impl std::error::Error for ProblemDetail {}
 
 /// Marker trait for types that can produce an [`ErrorCode`].
@@ -161,6 +163,7 @@ pub trait ErrCode {
     }
 
     /// Converts this error into a [`ProblemDetail`].
+    #[cfg(feature = "serde_impl")]
     fn problem(&self) -> ProblemDetail {
         let mut problem = ProblemDetail::new(self.code());
         if let Some(detail) = self.detail() {
@@ -183,6 +186,7 @@ mod tests {
         assert_eq!(ErrorCode::Internal.status(), 500);
     }
 
+    #[cfg(feature = "serde_impl")]
     #[test]
     fn problem_detail_construction() {
         let problem = ProblemDetail::new(ErrorCode::NotFound)
@@ -195,11 +199,12 @@ mod tests {
         assert_eq!(problem.instance.as_deref(), Some("/users/42"));
     }
 
+    #[cfg(feature = "serde_impl")]
     #[test]
     fn problem_detail_display() {
         let problem = ProblemDetail::new(ErrorCode::Validation).with_detail("name is required");
         assert_eq!(
-            format!("{problem}"),
+            alloc::format!("{problem}"),
             "[422] Validation Error: name is required"
         );
     }
@@ -270,24 +275,24 @@ mod tests {
 
     #[test]
     fn error_code_display_all_variants() {
-        assert_eq!(format!("{}", ErrorCode::NotFound), "Not Found (404)");
-        assert_eq!(format!("{}", ErrorCode::Conflict), "Conflict (409)");
+        assert_eq!(alloc::format!("{}", ErrorCode::NotFound), "Not Found (404)");
+        assert_eq!(alloc::format!("{}", ErrorCode::Conflict), "Conflict (409)");
         assert_eq!(
-            format!("{}", ErrorCode::Validation),
+            alloc::format!("{}", ErrorCode::Validation),
             "Validation Error (422)"
         );
-        assert_eq!(format!("{}", ErrorCode::Auth), "Unauthorized (401)");
+        assert_eq!(alloc::format!("{}", ErrorCode::Auth), "Unauthorized (401)");
         assert_eq!(
-            format!("{}", ErrorCode::Internal),
+            alloc::format!("{}", ErrorCode::Internal),
             "Internal Server Error (500)"
         );
         assert_eq!(
-            format!("{}", ErrorCode::RateLimited),
+            alloc::format!("{}", ErrorCode::RateLimited),
             "Too Many Requests (429)"
         );
-        assert_eq!(format!("{}", ErrorCode::BadRequest), "Bad Request (400)");
+        assert_eq!(alloc::format!("{}", ErrorCode::BadRequest), "Bad Request (400)");
         assert_eq!(
-            format!("{}", ErrorCode::Unavailable),
+            alloc::format!("{}", ErrorCode::Unavailable),
             "Service Unavailable (503)"
         );
     }
@@ -299,10 +304,11 @@ mod tests {
         let copied = code;
         assert_eq!(code, cloned);
         assert_eq!(code, copied);
-        let debug_str = format!("{:?}", code);
+        let debug_str = alloc::format!("{:?}", code);
         assert_eq!(debug_str, "NotFound");
     }
 
+    #[cfg(feature = "std")]
     #[test]
     fn error_code_hash_consistency() {
         use std::collections::HashMap;
@@ -316,18 +322,21 @@ mod tests {
 
     // ---- Additional ProblemDetail tests ----
 
+    #[cfg(feature = "serde_impl")]
     #[test]
     fn problem_detail_display_without_detail() {
         let problem = ProblemDetail::new(ErrorCode::Internal);
-        assert_eq!(format!("{problem}"), "[500] Internal Server Error");
+        assert_eq!(alloc::format!("{problem}"), "[500] Internal Server Error");
     }
 
+    #[cfg(feature = "serde_impl")]
     #[test]
     fn problem_detail_display_only_instance() {
         let problem = ProblemDetail::new(ErrorCode::NotFound).with_instance("/users/42");
-        assert_eq!(format!("{problem}"), "[404] Not Found");
+        assert_eq!(alloc::format!("{problem}"), "[404] Not Found");
     }
 
+    #[cfg(feature = "serde_impl")]
     #[test]
     fn problem_detail_defaults_from_code() {
         let problem = ProblemDetail::new(ErrorCode::Auth);
@@ -338,6 +347,7 @@ mod tests {
         assert!(problem.instance.is_none());
     }
 
+    #[cfg(all(feature = "std", feature = "serde_impl"))]
     #[test]
     fn problem_detail_implements_std_error() {
         let problem = ProblemDetail::new(ErrorCode::NotFound).with_detail("gone");
@@ -346,6 +356,7 @@ mod tests {
         assert!(err.to_string().contains("Not Found"));
     }
 
+    #[cfg(feature = "serde_impl")]
     #[test]
     fn problem_detail_clone() {
         let p1 = ProblemDetail::new(ErrorCode::Conflict)
@@ -391,11 +402,11 @@ mod tests {
 
     #[derive(Debug)]
     struct MyError {
-        msg: String,
+        msg: alloc::string::String,
     }
 
-    impl std::fmt::Display for MyError {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    impl core::fmt::Display for MyError {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
             write!(f, "{}", self.msg)
         }
     }
@@ -414,6 +425,7 @@ mod tests {
         }
     }
 
+    #[cfg(feature = "serde_impl")]
     #[test]
     fn err_code_trait_problem_with_detail() {
         let err = MyError {
@@ -438,21 +450,25 @@ mod tests {
         assert_eq!(other.code(), ErrorCode::Internal);
     }
 
+    #[cfg(feature = "serde_impl")]
     #[derive(Debug)]
     struct SimpleError;
 
-    impl std::fmt::Display for SimpleError {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    #[cfg(feature = "serde_impl")]
+    impl core::fmt::Display for SimpleError {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
             write!(f, "simple error")
         }
     }
 
+    #[cfg(feature = "serde_impl")]
     impl ErrCode for SimpleError {
         fn code(&self) -> ErrorCode {
             ErrorCode::BadRequest
         }
     }
 
+    #[cfg(feature = "serde_impl")]
     #[test]
     fn err_code_trait_default_detail_none() {
         let err = SimpleError;
