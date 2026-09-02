@@ -79,10 +79,7 @@ impl fmt::Display for ErrorCode {
 /// Represents a structured error response as defined in
 /// [RFC 7807](https://datatracker.ietf.org/doc/html/rfc7807).
 #[derive(Debug, Clone)]
-#[cfg_attr(
-    feature = "serde_impl",
-    derive(serde::Serialize, serde::Deserialize)
-)]
+#[cfg_attr(feature = "serde_impl", derive(serde::Serialize, serde::Deserialize))]
 pub struct ProblemDetail {
     /// The error type URI.
     #[cfg_attr(feature = "serde_impl", serde(rename = "type"))]
@@ -200,16 +197,17 @@ mod tests {
 
     #[test]
     fn problem_detail_display() {
-        let problem = ProblemDetail::new(ErrorCode::Validation)
-            .with_detail("name is required");
-        assert_eq!(format!("{problem}"), "[422] Validation Error: name is required");
+        let problem = ProblemDetail::new(ErrorCode::Validation).with_detail("name is required");
+        assert_eq!(
+            format!("{problem}"),
+            "[422] Validation Error: name is required"
+        );
     }
 
     #[cfg(feature = "serde_impl")]
     #[test]
     fn problem_detail_json_serialization() {
-        let problem = ProblemDetail::new(ErrorCode::Conflict)
-            .with_detail("version mismatch");
+        let problem = ProblemDetail::new(ErrorCode::Conflict).with_detail("version mismatch");
         let json = problem.to_json();
         assert!(json.contains("\"status\":409"));
         assert!(json.contains("Conflict"));
@@ -239,26 +237,59 @@ mod tests {
 
     #[test]
     fn error_code_type_uri_all_variants() {
-        assert_eq!(ErrorCode::NotFound.type_uri(), "https://httpstatuses.com/404");
-        assert_eq!(ErrorCode::Conflict.type_uri(), "https://httpstatuses.com/409");
-        assert_eq!(ErrorCode::Validation.type_uri(), "https://httpstatuses.com/422");
+        assert_eq!(
+            ErrorCode::NotFound.type_uri(),
+            "https://httpstatuses.com/404"
+        );
+        assert_eq!(
+            ErrorCode::Conflict.type_uri(),
+            "https://httpstatuses.com/409"
+        );
+        assert_eq!(
+            ErrorCode::Validation.type_uri(),
+            "https://httpstatuses.com/422"
+        );
         assert_eq!(ErrorCode::Auth.type_uri(), "https://httpstatuses.com/401");
-        assert_eq!(ErrorCode::Internal.type_uri(), "https://httpstatuses.com/500");
-        assert_eq!(ErrorCode::RateLimited.type_uri(), "https://httpstatuses.com/429");
-        assert_eq!(ErrorCode::BadRequest.type_uri(), "https://httpstatuses.com/400");
-        assert_eq!(ErrorCode::Unavailable.type_uri(), "https://httpstatuses.com/503");
+        assert_eq!(
+            ErrorCode::Internal.type_uri(),
+            "https://httpstatuses.com/500"
+        );
+        assert_eq!(
+            ErrorCode::RateLimited.type_uri(),
+            "https://httpstatuses.com/429"
+        );
+        assert_eq!(
+            ErrorCode::BadRequest.type_uri(),
+            "https://httpstatuses.com/400"
+        );
+        assert_eq!(
+            ErrorCode::Unavailable.type_uri(),
+            "https://httpstatuses.com/503"
+        );
     }
 
     #[test]
     fn error_code_display_all_variants() {
         assert_eq!(format!("{}", ErrorCode::NotFound), "Not Found (404)");
         assert_eq!(format!("{}", ErrorCode::Conflict), "Conflict (409)");
-        assert_eq!(format!("{}", ErrorCode::Validation), "Validation Error (422)");
+        assert_eq!(
+            format!("{}", ErrorCode::Validation),
+            "Validation Error (422)"
+        );
         assert_eq!(format!("{}", ErrorCode::Auth), "Unauthorized (401)");
-        assert_eq!(format!("{}", ErrorCode::Internal), "Internal Server Error (500)");
-        assert_eq!(format!("{}", ErrorCode::RateLimited), "Too Many Requests (429)");
+        assert_eq!(
+            format!("{}", ErrorCode::Internal),
+            "Internal Server Error (500)"
+        );
+        assert_eq!(
+            format!("{}", ErrorCode::RateLimited),
+            "Too Many Requests (429)"
+        );
         assert_eq!(format!("{}", ErrorCode::BadRequest), "Bad Request (400)");
-        assert_eq!(format!("{}", ErrorCode::Unavailable), "Service Unavailable (503)");
+        assert_eq!(
+            format!("{}", ErrorCode::Unavailable),
+            "Service Unavailable (503)"
+        );
     }
 
     #[test]
@@ -293,8 +324,7 @@ mod tests {
 
     #[test]
     fn problem_detail_display_only_instance() {
-        let problem = ProblemDetail::new(ErrorCode::NotFound)
-            .with_instance("/users/42");
+        let problem = ProblemDetail::new(ErrorCode::NotFound).with_instance("/users/42");
         assert_eq!(format!("{problem}"), "[404] Not Found");
     }
 
@@ -310,8 +340,7 @@ mod tests {
 
     #[test]
     fn problem_detail_implements_std_error() {
-        let problem = ProblemDetail::new(ErrorCode::NotFound)
-            .with_detail("gone");
+        let problem = ProblemDetail::new(ErrorCode::NotFound).with_detail("gone");
         let err: &dyn std::error::Error = &problem;
         assert!(err.source().is_none());
         assert!(err.to_string().contains("Not Found"));
@@ -398,10 +427,14 @@ mod tests {
 
     #[test]
     fn err_code_trait_code_selection() {
-        let not_found = MyError { msg: "not found".into() };
+        let not_found = MyError {
+            msg: "not found".into(),
+        };
         assert_eq!(not_found.code(), ErrorCode::NotFound);
 
-        let other = MyError { msg: "something".into() };
+        let other = MyError {
+            msg: "something".into(),
+        };
         assert_eq!(other.code(), ErrorCode::Internal);
     }
 

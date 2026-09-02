@@ -1,1 +1,0 @@
-/home/wyatt/dev/src/github.com/WyattAu/errcode/target/debug/liberror_codes.rlib: /home/wyatt/dev/src/github.com/WyattAu/errcode/target/package/error-codes-0.1.0/src/error.rs /home/wyatt/dev/src/github.com/WyattAu/errcode/target/package/error-codes-0.1.0/src/lib.rs

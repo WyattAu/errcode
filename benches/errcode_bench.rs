@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use error_codes::{ErrorCode, ProblemDetail};
 
 fn bench_error_code_status(c: &mut Criterion) {
@@ -42,10 +42,7 @@ fn bench_problem_detail_creation(c: &mut Criterion) {
 
 fn bench_problem_detail_with_detail(c: &mut Criterion) {
     c.bench_function("problem_detail_with_detail", |b| {
-        b.iter(|| {
-            ProblemDetail::new(ErrorCode::NotFound)
-                .with_detail("User not found")
-        });
+        b.iter(|| ProblemDetail::new(ErrorCode::NotFound).with_detail("User not found"));
     });
 }
 
@@ -78,8 +75,7 @@ fn bench_problem_detail_to_json_pretty(c: &mut Criterion) {
 }
 
 fn bench_problem_detail_display(c: &mut Criterion) {
-    let problem = ProblemDetail::new(ErrorCode::Validation)
-        .with_detail("name is required");
+    let problem = ProblemDetail::new(ErrorCode::Validation).with_detail("name is required");
     c.bench_function("problem_detail_display", |b| {
         b.iter(|| format!("{problem}"));
     });

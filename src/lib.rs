@@ -22,4 +22,4 @@ pub mod error;
 #[cfg(feature = "serde_impl")]
 pub use error::ProblemDetail;
 
-pub use error::{ErrorCode, ErrCode};
+pub use error::{ErrCode, ErrorCode};
