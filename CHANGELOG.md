@@ -5,8 +5,17 @@ Changelog](https://keepachangelog.com/) — versions follow [semver](https://sem
 
 ## [Unreleased]
 
-## [0.1.0]
+## [1.0.0] - 2026-09-05
+
+### Added
+
+- API declared stable; semver contract enforced via cargo-semver-checks CI gate.
+- Derive macros for error codes, HTTP status mapping, and RFC 7807 Problem
+  Details.
+- Optional integrations: `serde`, `axum`, `sqlx`, `anyhow`, `tracing`;
+  `no_std`-compatible core.
+
+## [0.1.0] - 2026-09-04
 
 ### Added
 - Structured error handling — derive macros for error codes, HTTP status mapping, RFC 7807 Problem Details.
-- Not yet published to crates.io (crate name unavailable).
