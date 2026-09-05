@@ -24,7 +24,7 @@ proptest! {
     #[test]
     fn status_code_always_valid_http_range(code in arb_error_code()) {
         let status = code.status();
-        prop_assert!(status >= 100 && status < 600,
+        prop_assert!((100..600).contains(&status),
             "status {} not in HTTP range 100-599", status);
     }
 
