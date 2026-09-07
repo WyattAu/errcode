@@ -12,8 +12,10 @@ pub enum ErrorCode {
     Conflict,
     /// 422 — Validation failure
     Validation,
-    /// 401 / 403 — Authentication or authorization error
+    /// 401 — Authentication error (who are you?)
     Auth,
+    /// 403 — Authorization error (authenticated, but not allowed)
+    Forbidden,
     /// 500 — Internal server error
     Internal,
     /// 429 — Rate limit exceeded
@@ -32,6 +34,7 @@ impl ErrorCode {
             Self::Conflict => 409,
             Self::Validation => 422,
             Self::Auth => 401,
+            Self::Forbidden => 403,
             Self::Internal => 500,
             Self::RateLimited => 429,
             Self::BadRequest => 400,
@@ -46,6 +49,7 @@ impl ErrorCode {
             Self::Conflict => "Conflict",
             Self::Validation => "Validation Error",
             Self::Auth => "Unauthorized",
+            Self::Forbidden => "Forbidden",
             Self::Internal => "Internal Server Error",
             Self::RateLimited => "Too Many Requests",
             Self::BadRequest => "Bad Request",
@@ -60,6 +64,7 @@ impl ErrorCode {
             Self::Conflict => "https://httpstatuses.com/409",
             Self::Validation => "https://httpstatuses.com/422",
             Self::Auth => "https://httpstatuses.com/401",
+            Self::Forbidden => "https://httpstatuses.com/403",
             Self::Internal => "https://httpstatuses.com/500",
             Self::RateLimited => "https://httpstatuses.com/429",
             Self::BadRequest => "https://httpstatuses.com/400",
@@ -183,7 +188,17 @@ mod tests {
         assert_eq!(ErrorCode::Conflict.status(), 409);
         assert_eq!(ErrorCode::Validation.status(), 422);
         assert_eq!(ErrorCode::Auth.status(), 401);
+        assert_eq!(ErrorCode::Forbidden.status(), 403);
         assert_eq!(ErrorCode::Internal.status(), 500);
+    }
+
+    #[test]
+    fn forbidden_is_distinct_from_auth() {
+        // Regression: CivitForge CoreError::Forbidden needs 403, previously
+        // collapsed into Auth (401). See ADR-0006 upstream findings.
+        assert_ne!(ErrorCode::Forbidden, ErrorCode::Auth);
+        assert_eq!(ErrorCode::Forbidden.reason(), "Forbidden");
+        assert_eq!(ErrorCode::Forbidden.type_uri(), "https://httpstatuses.com/403");
     }
 
     #[cfg(feature = "serde_impl")]
