@@ -13,6 +13,8 @@ fn arb_error_code() -> impl Strategy<Value = ErrorCode> {
         Just(ErrorCode::Conflict),
         Just(ErrorCode::Validation),
         Just(ErrorCode::Auth),
+        Just(ErrorCode::Unauthorized),
+        Just(ErrorCode::Forbidden),
         Just(ErrorCode::Internal),
         Just(ErrorCode::RateLimited),
         Just(ErrorCode::BadRequest),
@@ -47,6 +49,27 @@ proptest! {
         let status_str = code.status().to_string();
         prop_assert!(display.contains(&status_str),
             "display '{}' must contain status {}", display, status_str);
+    }
+
+    #[test]
+    fn status_code_alias_matches_status(code in arb_error_code()) {
+        prop_assert_eq!(code.status_code(), code.status());
+    }
+
+    #[test]
+    fn as_str_is_uppercase_identifier(code in arb_error_code()) {
+        let s = code.as_str();
+        prop_assert!(!s.is_empty(), "as_str must not be empty");
+        prop_assert!(s.chars().all(|c| c == '_' || c.is_ascii_uppercase()),
+            "as_str '{}' must be UPPER_SNAKE", s);
+    }
+
+    #[test]
+    fn http_error_impl_matches_inherent_mapping(code in arb_error_code()) {
+        use error_codes::HttpError;
+        prop_assert_eq!(<ErrorCode as HttpError>::status_code(&code), code.status());
+        prop_assert_eq!(<ErrorCode as HttpError>::error_code(&code), code.as_str());
+        prop_assert_eq!(<ErrorCode as HttpError>::public_message(&code), code.reason());
     }
 }
 

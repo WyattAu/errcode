@@ -4,7 +4,12 @@ use core::fmt;
 ///
 /// Each variant maps to an HTTP status code and provides
 /// machine-readable error classification.
+///
+/// This enum is the union of the `error-codes` and `http-errors` code sets:
+/// `Auth` is the historical generic 401; prefer the specific
+/// [`ErrorCode::Unauthorized`] / [`ErrorCode::Forbidden`] variants in new code.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde_impl", derive(serde::Serialize, serde::Deserialize))]
 pub enum ErrorCode {
     /// 404 — Resource not found
     NotFound,
@@ -14,6 +19,9 @@ pub enum ErrorCode {
     Validation,
     /// 401 — Authentication error (who are you?)
     Auth,
+    /// 401 — Authentication required (merged from `http-errors`; prefer this
+    /// over the historical generic `Auth` in new code)
+    Unauthorized,
     /// 403 — Authorization error (authenticated, but not allowed)
     Forbidden,
     /// 500 — Internal server error
@@ -33,12 +41,39 @@ impl ErrorCode {
             Self::NotFound => 404,
             Self::Conflict => 409,
             Self::Validation => 422,
-            Self::Auth => 401,
+            Self::Auth | Self::Unauthorized => 401,
             Self::Forbidden => 403,
             Self::Internal => 500,
             Self::RateLimited => 429,
             Self::BadRequest => 400,
             Self::Unavailable => 503,
+        }
+    }
+
+    /// Returns the HTTP status code for this error code.
+    ///
+    /// Alias of [`ErrorCode::status`] kept for `http-errors` compatibility
+    /// (that crate's method was named `status_code`).
+    pub fn status_code(&self) -> u16 {
+        self.status()
+    }
+
+    /// Returns the canonical machine-readable code string
+    /// (e.g. `"NOT_FOUND"`).
+    ///
+    /// Merged from `http-errors`' `HttpError::error_code`.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::NotFound => "NOT_FOUND",
+            Self::Conflict => "CONFLICT",
+            Self::Validation => "VALIDATION",
+            Self::Auth => "AUTH",
+            Self::Unauthorized => "UNAUTHORIZED",
+            Self::Forbidden => "FORBIDDEN",
+            Self::Internal => "INTERNAL",
+            Self::RateLimited => "RATE_LIMITED",
+            Self::BadRequest => "BAD_REQUEST",
+            Self::Unavailable => "UNAVAILABLE",
         }
     }
 
@@ -48,7 +83,7 @@ impl ErrorCode {
             Self::NotFound => "Not Found",
             Self::Conflict => "Conflict",
             Self::Validation => "Validation Error",
-            Self::Auth => "Unauthorized",
+            Self::Auth | Self::Unauthorized => "Unauthorized",
             Self::Forbidden => "Forbidden",
             Self::Internal => "Internal Server Error",
             Self::RateLimited => "Too Many Requests",
@@ -63,7 +98,7 @@ impl ErrorCode {
             Self::NotFound => "https://httpstatuses.com/404",
             Self::Conflict => "https://httpstatuses.com/409",
             Self::Validation => "https://httpstatuses.com/422",
-            Self::Auth => "https://httpstatuses.com/401",
+            Self::Auth | Self::Unauthorized => "https://httpstatuses.com/401",
             Self::Forbidden => "https://httpstatuses.com/403",
             Self::Internal => "https://httpstatuses.com/500",
             Self::RateLimited => "https://httpstatuses.com/429",
@@ -109,8 +144,8 @@ impl ProblemDetail {
     /// Creates a new `ProblemDetail` from an `ErrorCode`.
     pub fn new(code: ErrorCode) -> Self {
         Self {
-            type_uri: code.type_uri().to_string(),
-            title: code.reason().to_string(),
+            type_uri: alloc::string::String::from(code.type_uri()),
+            title: alloc::string::String::from(code.reason()),
             status: code.status(),
             detail: None,
             instance: None,
@@ -175,6 +210,40 @@ pub trait ErrCode {
             problem = problem.with_detail(detail);
         }
         problem
+    }
+}
+
+/// Status-mapping trait for error types that can be converted to HTTP responses.
+///
+/// Merged from the `http-errors` crate (which now re-exports this crate):
+/// implement this on your error enums to expose an HTTP status code, a
+/// machine-readable error code string, and a sanitized public message
+/// (no internal details). For the [`ErrorCode`]-backed workflow prefer
+/// [`ErrCode`]; this trait exists for compatibility with `http-errors`
+/// consumers.
+pub trait HttpError {
+    /// Get the HTTP status code.
+    fn status_code(&self) -> u16;
+    /// Get the machine-readable error code.
+    fn error_code(&self) -> &str;
+    /// Get a sanitized error message (no internal details).
+    fn public_message(&self) -> alloc::string::String;
+}
+
+impl HttpError for ErrorCode {
+    /// Returns [`ErrorCode::status`] for this code.
+    fn status_code(&self) -> u16 {
+        self.status()
+    }
+
+    /// Returns [`ErrorCode::as_str`] for this code.
+    fn error_code(&self) -> &str {
+        self.as_str()
+    }
+
+    /// Returns the canonical reason phrase (safe to expose to clients).
+    fn public_message(&self) -> alloc::string::String {
+        alloc::string::String::from(self.reason())
     }
 }
 
@@ -491,5 +560,64 @@ mod tests {
         let problem = err.problem();
         assert_eq!(problem.status, 400);
         assert!(problem.detail.is_none());
+    }
+
+    // ---- HttpError trait tests (merged from `http-errors`) ----
+
+    #[test]
+    fn http_error_for_error_code_matches_inherent_mapping() {
+        use crate::HttpError as _;
+        assert_eq!(
+            <ErrorCode as HttpError>::status_code(&ErrorCode::NotFound),
+            ErrorCode::NotFound.status()
+        );
+        assert_eq!(
+            <ErrorCode as HttpError>::status_code(&ErrorCode::Forbidden),
+            403
+        );
+        assert_eq!(
+            <ErrorCode as HttpError>::error_code(&ErrorCode::Unauthorized),
+            "UNAUTHORIZED"
+        );
+        assert_eq!(
+            <ErrorCode as HttpError>::error_code(&ErrorCode::Validation),
+            ErrorCode::Validation.as_str()
+        );
+        assert_eq!(
+            <ErrorCode as HttpError>::public_message(&ErrorCode::Internal),
+            "Internal Server Error"
+        );
+    }
+
+    #[test]
+    fn http_error_custom_impl() {
+        use crate::HttpError;
+
+        #[derive(Debug)]
+        struct NotFoundError(alloc::string::String);
+
+        impl core::fmt::Display for NotFoundError {
+            fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+                write!(f, "not found: {}", self.0)
+            }
+        }
+
+        impl HttpError for NotFoundError {
+            fn status_code(&self) -> u16 {
+                404
+            }
+            fn error_code(&self) -> &str {
+                "NOT_FOUND"
+            }
+            fn public_message(&self) -> alloc::string::String {
+                alloc::string::String::from("Resource not found")
+            }
+        }
+
+        let err = NotFoundError(alloc::string::String::from("secret id 42"));
+        assert_eq!(err.status_code(), 404);
+        assert_eq!(err.error_code(), "NOT_FOUND");
+        // Sanitized: must not leak the internal detail.
+        assert_eq!(err.public_message(), "Resource not found");
     }
 }

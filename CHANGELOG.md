@@ -5,6 +5,13 @@ Changelog](https://keepachangelog.com/) — versions follow [semver](https://sem
 
 ## [Unreleased]
 
+### Added
+- Merged `http-errors` into `errcode`: `ErrorCode::Unauthorized` /
+  `ErrorCode::Forbidden` variants, `status_code()` alias for `status()`,
+  `as_str()` canonical code strings, and the `HttpError` status-mapping
+  trait (`status_code()` / `error_code()` / `public_message()`, implemented
+  for `ErrorCode`). `http-errors` remains as a thin re-export shim.
+
 ## [1.0.0] - 2026-09-05
 
 ### Added

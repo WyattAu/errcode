@@ -53,6 +53,54 @@ let err = AppError {
 let problem: ProblemDetail = err.problem();
 ```
 
+### Implementing `HttpError` on your error type
+
+```rust
+use errcode::HttpError;
+
+#[derive(Debug, thiserror::Error)]
+pub enum AppError {
+    #[error("not found: {0}")]
+    NotFound(String),
+    #[error("unauthorized")]
+    Unauthorized,
+}
+
+impl HttpError for AppError {
+    fn status_code(&self) -> u16 {
+        match self {
+            Self::NotFound(_) => 404,
+            Self::Unauthorized => 401,
+        }
+    }
+    fn error_code(&self) -> &str {
+        match self {
+            Self::NotFound(_) => "NOT_FOUND",
+            Self::Unauthorized => "UNAUTHORIZED",
+        }
+    }
+    fn public_message(&self) -> String {
+        match self {
+            Self::NotFound(_) => "Resource not found".to_string(),
+            Self::Unauthorized => "Authentication required".to_string(),
+        }
+    }
+}
+```
+
+`ErrorCode` itself implements `HttpError` (`status_code()` delegates to
+`status()`, `error_code()` to `as_str()`, `public_message()` to `reason()`),
+so code-based errors get the trait for free.
+
+## Relationship with `http-errors`
+
+`errcode` absorbs the `http-errors` crate: the `Unauthorized` / `Forbidden`
+variants, the `status_code()` alias for `status()`, the `as_str()` canonical
+code strings, and the `HttpError` status-mapping trait (`status_code()` /
+`error_code()` / `public_message()`) all live here now. `http-errors` remains
+published as a thin re-export shim over `errcode` so existing users don't
+break; new code should depend on `errcode` directly.
+
 ## Features
 
 | Feature | Default | Description |
