@@ -10,6 +10,7 @@ use core::fmt;
 /// [`ErrorCode::Unauthorized`] / [`ErrorCode::Forbidden`] variants in new code.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde_impl", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
 pub enum ErrorCode {
     /// 404 — Resource not found
     NotFound,
@@ -121,9 +122,12 @@ impl fmt::Display for ErrorCode {
 #[derive(Debug, Clone)]
 #[cfg(feature = "serde_impl")]
 #[cfg_attr(feature = "serde_impl", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "schemars", derive(schemars::JsonSchema))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub struct ProblemDetail {
     /// The error type URI.
     #[cfg_attr(feature = "serde_impl", serde(rename = "type"))]
+    #[cfg_attr(feature = "schemars", schemars(rename = "type"))]
     pub type_uri: alloc::string::String,
 
     /// Human-readable summary.
@@ -267,7 +271,10 @@ mod tests {
         // collapsed into Auth (401). See ADR-0006 upstream findings.
         assert_ne!(ErrorCode::Forbidden, ErrorCode::Auth);
         assert_eq!(ErrorCode::Forbidden.reason(), "Forbidden");
-        assert_eq!(ErrorCode::Forbidden.type_uri(), "https://httpstatuses.com/403");
+        assert_eq!(
+            ErrorCode::Forbidden.type_uri(),
+            "https://httpstatuses.com/403"
+        );
     }
 
     #[cfg(feature = "serde_impl")]
@@ -374,7 +381,10 @@ mod tests {
             alloc::format!("{}", ErrorCode::RateLimited),
             "Too Many Requests (429)"
         );
-        assert_eq!(alloc::format!("{}", ErrorCode::BadRequest), "Bad Request (400)");
+        assert_eq!(
+            alloc::format!("{}", ErrorCode::BadRequest),
+            "Bad Request (400)"
+        );
         assert_eq!(
             alloc::format!("{}", ErrorCode::Unavailable),
             "Service Unavailable (503)"
@@ -566,7 +576,6 @@ mod tests {
 
     #[test]
     fn http_error_for_error_code_matches_inherent_mapping() {
-        use crate::HttpError as _;
         assert_eq!(
             <ErrorCode as HttpError>::status_code(&ErrorCode::NotFound),
             ErrorCode::NotFound.status()
@@ -619,5 +628,90 @@ mod tests {
         assert_eq!(err.error_code(), "NOT_FOUND");
         // Sanitized: must not leak the internal detail.
         assert_eq!(err.public_message(), "Resource not found");
+    }
+
+    #[cfg(feature = "schemars")]
+    #[test]
+    fn problem_detail_json_schema_has_required_fields() {
+        let schema = schemars::schema_for!(ProblemDetail);
+        let json = serde_json::to_value(&schema).expect("schema should serialize");
+
+        assert_eq!(json["type"], "object");
+
+        // All five RFC 7807 fields present, with the serde rename applied.
+        let props = json["properties"].as_object().expect("properties object");
+        for field in ["type", "title", "status", "detail", "instance"] {
+            assert!(props.contains_key(field), "missing property `{field}`");
+        }
+
+        // Non-Option fields are required; Option fields are not.
+        let required: Vec<&str> = json["required"]
+            .as_array()
+            .expect("required array")
+            .iter()
+            .map(|v| v.as_str().expect("required entries are strings"))
+            .collect();
+        assert!(required.contains(&"type"));
+        assert!(required.contains(&"title"));
+        assert!(required.contains(&"status"));
+        assert!(!required.contains(&"detail"));
+        assert!(!required.contains(&"instance"));
+    }
+
+    #[cfg(feature = "schemars")]
+    #[test]
+    fn error_code_json_schema_lists_all_variants() {
+        let schema = schemars::schema_for!(ErrorCode);
+        let json = serde_json::to_value(&schema).expect("schema should serialize");
+
+        // Unit-only enum -> `oneOf` of string consts matching the serde
+        // representation.
+        let consts: Vec<&str> = json["oneOf"]
+            .as_array()
+            .expect("oneOf array")
+            .iter()
+            .map(|v| v["const"].as_str().expect("string consts"))
+            .collect();
+        assert_eq!(consts.len(), 10);
+        for variant in [
+            "NotFound",
+            "Conflict",
+            "Validation",
+            "Auth",
+            "Unauthorized",
+            "Forbidden",
+            "Internal",
+            "RateLimited",
+            "BadRequest",
+            "Unavailable",
+        ] {
+            assert!(consts.contains(&variant), "missing variant `{variant}`");
+        }
+    }
+
+    #[cfg(feature = "utoipa")]
+    #[test]
+    fn problem_detail_to_schema_object() {
+        let schema = <ProblemDetail as utoipa::PartialSchema>::schema();
+        let json = serde_json::to_value(&schema).expect("schema should serialize");
+
+        assert_eq!(json["type"], "object");
+
+        let props = json["properties"].as_object().expect("properties object");
+        for field in ["type", "title", "status", "detail", "instance"] {
+            assert!(props.contains_key(field), "missing property `{field}`");
+        }
+
+        let required: Vec<&str> = json["required"]
+            .as_array()
+            .expect("required array")
+            .iter()
+            .map(|v| v.as_str().expect("required entries are strings"))
+            .collect();
+        assert!(required.contains(&"type"));
+        assert!(required.contains(&"title"));
+        assert!(required.contains(&"status"));
+        assert!(!required.contains(&"detail"));
+        assert!(!required.contains(&"instance"));
     }
 }

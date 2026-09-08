@@ -75,8 +75,8 @@ proptest! {
 
 #[cfg(feature = "serde_impl")]
 mod problem_detail_tests {
-    use proptest::prelude::*;
     use error_codes::ProblemDetail;
+    use proptest::prelude::*;
 
     use super::arb_error_code;
 

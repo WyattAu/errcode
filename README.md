@@ -108,9 +108,28 @@ break; new code should depend on `errcode` directly.
 | `std` | yes | Standard library support |
 | `axum` | yes | Axum integration (IntoResponse impl) |
 | `serde_impl` | yes | Serialize/deserialize ProblemDetail |
+| `schemars` | no | `JsonSchema` derive for `ErrorCode` and `ProblemDetail` (implies `serde_impl`) |
+| `utoipa` | no | `utoipa::ToSchema` derive for `ProblemDetail` for OpenAPI docs (implies `serde_impl`) |
 | `sqlx` | no | SQLx error conversion |
 | `anyhow` | no | Anyhow integration |
 | `tracing` | no | Tracing instrumentation |
+
+### Schema generation
+
+With the `schemars` or `utoipa` features, `ProblemDetail` derives the matching
+schema trait so it drops straight into generated API docs:
+
+```rust,ignore
+// schemars feature: JSON Schema (draft 2020-12)
+let schema = schemars::schema_for!(error_codes::ProblemDetail);
+
+// utoipa feature: OpenAPI (utoipa 5.x)
+use utoipa::PartialSchema;
+let schema = error_codes::ProblemDetail::schema();
+```
+
+Both schemas mark `type`, `title`, and `status` as required and keep
+`detail` / `instance` optional, matching the serialized RFC 7807 shape.
 
 ## Comparison with other crates
 

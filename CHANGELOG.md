@@ -3,7 +3,7 @@
 All notable changes to this project are documented here. Format: [Keep a
 Changelog](https://keepachangelog.com/) — versions follow [semver](https://semver.org).
 
-## [Unreleased]
+## [1.1.0] - 2026-09-09
 
 ### Added
 - Merged `http-errors` into `errcode`: `ErrorCode::Unauthorized` /
@@ -11,6 +11,10 @@ Changelog](https://keepachangelog.com/) — versions follow [semver](https://sem
   `as_str()` canonical code strings, and the `HttpError` status-mapping
   trait (`status_code()` / `error_code()` / `public_message()`, implemented
   for `ErrorCode`). `http-errors` remains as a thin re-export shim.
+- `schemars` feature: `JsonSchema` derive for `ErrorCode` and `ProblemDetail`
+  (schemars 1.x, JSON Schema draft 2020-12). Implies `serde_impl` + `std`.
+- `utoipa` feature: `utoipa::ToSchema` derive for `ProblemDetail`
+  (utoipa 5.x) for OpenAPI documentation. Implies `serde_impl` + `std`.
 
 ## [1.0.0] - 2026-09-05
 
