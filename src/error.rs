@@ -169,11 +169,14 @@ impl ProblemDetail {
     }
 
     /// Serializes to JSON (requires `serde_impl` feature).
+    // Justified: ProblemDetail contains only JSON-serializable fields.
+    #[allow(clippy::expect_used)]
     pub fn to_json(&self) -> alloc::string::String {
         serde_json::to_string(self).expect("ProblemDetail should always serialize")
     }
 
     /// Serializes to pretty-printed JSON (requires `serde_impl` feature).
+    #[allow(clippy::expect_used)]
     pub fn to_json_pretty(&self) -> alloc::string::String {
         serde_json::to_string_pretty(self).expect("ProblemDetail should always serialize")
     }
@@ -253,6 +256,7 @@ impl HttpError for ErrorCode {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::unwrap_used, clippy::expect_used)] // test assertions unwrap by design
     use super::*;
 
     #[test]
