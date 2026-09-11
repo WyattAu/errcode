@@ -12,22 +12,17 @@ exclude = ["/target"]
 readme = "README.md"
 
 [dependencies]
-thiserror = { version = "2", default-features = false }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", optional = true }
-axum = { version = "0.8", optional = true }
-sqlx = { version = "0.8", optional = true }
-anyhow = { version = "1", optional = true }
-tracing = { version = "0.1", optional = true }
 schemars = { version = "1", optional = true }
 utoipa = { version = "5", optional = true }
 
 [features]
 default = ["std", "axum", "serde_impl"]
-std = ["thiserror/std"]
-axum = ["dep:axum"]
-sqlx = ["dep:sqlx"]
-anyhow = ["dep:anyhow"]
+std = []
+axum = []
+sqlx = []
+anyhow = []
 serde_impl = ["dep:serde", "dep:serde_json"]
 schemars = ["dep:schemars", "serde_impl", "std"]
 utoipa = ["dep:utoipa", "serde_impl", "std"]

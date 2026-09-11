@@ -1,5 +1,9 @@
 # error-codes
 
+[![docs.rs](https://docs.rs/error-codes/badge.svg)](https://docs.rs/error-codes)
+[![crates.io](https://img.shields.io/crates/v/error-codes.svg)](https://crates.io/crates/error-codes)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
+
 Structured error handling for Rust — derive macros for error codes, HTTP status mapping, and RFC 7807 Problem Details.
 
 ## Purpose
