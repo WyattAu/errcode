@@ -1,9 +1,9 @@
 [package]
 name = "error-codes"
-version = "1.1.0"
+version = "1.1.1"
 edition = "2024"
 rust-version = "1.85"
-description = "Structured error handling for Rust — derive macros for error codes, HTTP status mapping, and RFC 7807 Problem Details"
+description = "Structured error handling for Rust: derive macros for error codes, HTTP status mapping, and RFC 7807 Problem Details"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/WyattAu/errcode"
 keywords = ["error", "http", "problem-details", "rfc7807", "derive"]
