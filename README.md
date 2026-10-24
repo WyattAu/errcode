@@ -1,4 +1,5 @@
 # error-codes
+[![Estate integration](https://github.com/WyattAu/estate-integration/actions/workflows/ci.yml/badge.svg)](https://github.com/WyattAu/estate-integration/actions/workflows/ci.yml)
 
 [![docs.rs](https://docs.rs/error-codes/badge.svg)](https://docs.rs/error-codes)
 [![crates.io](https://img.shields.io/crates/v/error-codes.svg)](https://crates.io/crates/error-codes)
