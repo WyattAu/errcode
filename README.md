@@ -5,14 +5,14 @@
 [![crates.io](https://img.shields.io/crates/v/error-codes.svg)](https://crates.io/crates/error-codes)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
 
-Structured error handling for Rust — derive macros for error codes, HTTP status mapping, and RFC 7807 Problem Details.
+Structured error handling for Rust; derive macros for error codes, HTTP status mapping, and RFC 7807 Problem Details.
 
 ## Purpose
 
 `errcode` provides a unified error type system that bridges Rust error handling with HTTP APIs. It gives you:
 
 - **Machine-readable error codes** (`ErrorCode` enum) that map directly to HTTP status codes
-- **RFC 7807 Problem Details** — the IETF standard for HTTP API error responses
+- **RFC 7807 Problem Details**; the IETF standard for HTTP API error responses
 - **Derive macro support** (`ErrCode` trait) for ergonomic error type definitions
 - **Framework integration** with Axum, SQLx, and tracing out of the box
 

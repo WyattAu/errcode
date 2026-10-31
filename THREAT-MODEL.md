@@ -1,11 +1,11 @@
-# Threat Model — errcode
+# Threat Model: errcode
 
 Reference: STRIDE. Scope: the crate's public API surface. Trust boundary:
 (1) bytes/inputs entering public constructors and parsers, (2) concurrent
-callers sharing interior state. errcode is an in-process library — it opens
+callers sharing interior state. errcode is an in-process library; it opens
 no sockets and inherits the embedding process's trust domain.
 
-Purpose: Structured error codes (`error-codes`) — `ErrorCode` enum, derive macro, RFC 7807 mapping
+Purpose: Structured error codes (`error-codes`); `ErrorCode` enum, derive macro, RFC 7807 mapping
 
 ## Assets
 
